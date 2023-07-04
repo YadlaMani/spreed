@@ -282,9 +282,11 @@ const actions = {
 	 * @param {Function} context.dispatch the contexts dispatch function.
 	 * @param {object} context.getters the contexts getters object.
 	 * @param {object} context.state the contexts state object.
-	 * @param {string} uploadId The unique uploadId
+	 * @param {object} data the wrapping object
+	 * @param {string} data.uploadId The unique uploadId
+	 * @param {string} [data.caption] The text caption to the media
 	 */
-	async uploadFiles({ commit, dispatch, state, getters }, uploadId) {
+	async uploadFiles({ commit, dispatch, state, getters }, { uploadId, caption }) {
 		if (state.currentUploadId === uploadId) {
 			commit('setCurrentUploadId', undefined)
 		}
@@ -297,7 +299,10 @@ const actions = {
 			// mark all files as uploading
 			commit('markFileAsUploading', { uploadId, index })
 			// Store the previously created temporary message
-			const temporaryMessage = state.uploads[uploadId].files[index].temporaryMessage
+			const temporaryMessage = {
+				...state.uploads[uploadId].files[index].temporaryMessage,
+				message: caption,
+			}
 			// Add temporary messages (files) to the messages list
 			dispatch('addTemporaryMessage', temporaryMessage)
 			// Scroll the message list
@@ -358,7 +363,9 @@ const actions = {
 			for (const index in shareableFiles) {
 				const path = shareableFiles[index].sharePath
 				const temporaryMessage = shareableFiles[index].temporaryMessage
-				const metadata = JSON.stringify({ messageType: temporaryMessage.messageType })
+				const metadata = caption
+					? JSON.stringify({ messageType: temporaryMessage.messageType, caption })
+					: JSON.stringify({ messageType: temporaryMessage.messageType })
 				try {
 					const token = temporaryMessage.token
 					dispatch('markFileAsSharing', { uploadId, index })
