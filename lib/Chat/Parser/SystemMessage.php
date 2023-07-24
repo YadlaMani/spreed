@@ -411,7 +411,7 @@ class SystemMessage {
 				}
 
 				if (isset($metaData['caption']) && $metaData['caption'] !== '') {
-					$parsedMessage = $metaData['caption'] . '{file}';
+					$parsedMessage = $metaData['caption'];
 				}
 			} catch (\Exception $e) {
 				$parsedMessage = $this->l->t('{actor} shared a file which is no longer available');
