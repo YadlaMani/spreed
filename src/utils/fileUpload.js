@@ -36,9 +36,8 @@ const getFileExtension = function(path) {
  *
  * @param {object} client The webdav client object
  * @param {string} userRoot user root path
- * @param {string} path The path whose existence in the destination is to
- * be checked
- * @return {string} The unique path
+ * @param {string} path The path whose existence in the destination is to be checked
+ * @return {Promise<string>} The unique path
  */
 const findUniquePath = async function(client, userRoot, path) {
 	// Return the input path if it doesn't exist in the destination folder
@@ -47,13 +46,13 @@ const findUniquePath = async function(client, userRoot, path) {
 	}
 	// Get the file extension (if any)
 	const fileExtension = getFileExtension(path)
-	// If there's a file extention, remove it from the path string
+	// If there's a file extension, remove it from the path string
 	if (fileExtension !== '') {
 		path = path.substring(0, path.length - fileExtension.length)
 	}
 	// Check if the path ends with ` (n)`
 	const suffix = path.match(/ \((\d+)\)$/) ? path.match(/ \((\d+)\)$/) : ''
-	// Initialise a pathwithout suffix variable
+	// Initialise a path without suffix variable
 	let pathWithoutSuffix = path
 	if (suffix !== '') {
 		// remove the suffix if any
