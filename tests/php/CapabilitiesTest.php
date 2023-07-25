@@ -144,6 +144,7 @@ class CapabilitiesTest extends TestCase {
 			'recording-consent',
 			'message-expiration',
 			'reactions',
+			'media-caption',
 		];
 	}
 

@@ -165,6 +165,7 @@ class Capabilities implements IPublicCapability {
 				'session-state',
 				'note-to-self',
 				'recording-consent',
+				'media-caption',
 			],
 			'config' => [
 				'attachments' => [
