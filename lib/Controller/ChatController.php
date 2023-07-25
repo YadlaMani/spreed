@@ -315,19 +315,19 @@ class ChatController extends AEnvironmentAwareController {
 	#[RequireParticipant]
 	#[RequirePermission(permission: RequirePermission::CHAT)]
 	#[RequireReadWriteConversation]
-	public function shareMultipleFilesToChat(array $sharedIds, string $caption, string $actorDisplayName = '', string $referenceId = ''): DataResponse {
+	public function shareMultipleFilesToChat(array $shareIds, string $caption, string $actorDisplayName = '', string $referenceId = ''): DataResponse {
 		[$actorType, $actorId] = $this->getActorInfo($actorDisplayName);
 		if (!$actorId) {
 			return new DataResponse([], Http::STATUS_NOT_FOUND);
 		}
 
-		$numShares = count($sharedIds);
+		$numShares = count($shareIds);
 		if ($numShares > 64) {
 			return new DataResponse([], Http::STATUS_REQUEST_ENTITY_TOO_LARGE);
 		}
 
-		$shares = $this->shareProvider->getSharesByIds($sharedIds);
-		if (count($shares) !== count($sharedIds)) {
+		$shares = $this->shareProvider->getSharesByIds($shareIds);
+		if (count($shares) !== $numShares) {
 			return new DataResponse([], Http::STATUS_NOT_FOUND);
 		}
 
