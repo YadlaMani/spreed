@@ -305,6 +305,61 @@ class ChatController extends AEnvironmentAwareController {
 		return $this->parseCommentToResponse($comment);
 	}
 
+	/**
+	 * Share multiple files and a caption into the chat
+	 *
+	 * @param int[] $sharedIds
+	 */
+	#[NoAdminRequired]
+	#[RequireModeratorOrNoLobby]
+	#[RequireParticipant]
+	#[RequirePermission(permission: RequirePermission::CHAT)]
+	#[RequireReadWriteConversation]
+	public function shareMultipleFilesToChat(array $sharedIds, string $caption, string $actorDisplayName = '', string $referenceId = ''): DataResponse {
+		[$actorType, $actorId] = $this->getActorInfo($actorDisplayName);
+		if (!$actorId) {
+			return new DataResponse([], Http::STATUS_NOT_FOUND);
+		}
+
+		$numShares = count($sharedIds);
+		if ($numShares > 64) {
+			return new DataResponse([], Http::STATUS_REQUEST_ENTITY_TOO_LARGE);
+		}
+
+		$shares = $this->shareProvider->getSharesByIds($sharedIds);
+		if (count($shares) !== count($sharedIds)) {
+			return new DataResponse([], Http::STATUS_NOT_FOUND);
+		}
+
+		foreach ($shares as $share) {
+			// Only allowed to share your own shares
+			if ($share->getShareOwner() !== $actorId) {
+				return new DataResponse([], Http::STATUS_NOT_FOUND);
+			}
+		}
+
+		$this->participantService->ensureOneToOneRoomIsFilled($this->room);
+		$creationDateTime = $this->timeFactory->getDateTime('now', new \DateTimeZone('UTC'));
+
+		$message = json_encode([
+			'message' => 'multiple_files_shared',
+			'parameters' => [
+				'shares' => $sharedIds,
+				'caption' => $caption,
+			],
+		]);
+
+		try {
+			$comment = $this->chatManager->addSystemMessage($this->room, $actorType, $actorId, $message, $creationDateTime, true, $referenceId);
+		} catch (MessageTooLongException) {
+			return new DataResponse([], Http::STATUS_REQUEST_ENTITY_TOO_LARGE);
+		} catch (\Exception) {
+			return new DataResponse([], Http::STATUS_BAD_REQUEST);
+		}
+
+		return $this->parseCommentToResponse($comment);
+	}
+
 	/*
 	 * Gather share IDs from the comments and preload share definitions
 	 * to avoid separate database query for each individual share.
