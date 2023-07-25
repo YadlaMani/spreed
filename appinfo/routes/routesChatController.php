@@ -61,7 +61,7 @@ return [
 		/** @see \OCA\Talk\Controller\ChatController::shareObjectToChat() */
 		['name' => 'Chat#shareObjectToChat', 'url' => '/api/{apiVersion}/chat/{token}/share', 'verb' => 'POST', 'requirements' => $requirements],
 		/** @see \OCA\Talk\Controller\ChatController::shareMultipleFilesToChat() */
-		['name' => 'Chat#shareObjectToChat', 'url' => '/api/{apiVersion}/chat/{token}/share-files', 'verb' => 'POST', 'requirements' => $requirements],
+		['name' => 'Chat#shareMultipleFilesToChat', 'url' => '/api/{apiVersion}/chat/{token}/share-files', 'verb' => 'POST', 'requirements' => $requirements],
 		/** @see \OCA\Talk\Controller\ChatController::getObjectsSharedInRoomOverview() */
 		['name' => 'Chat#getObjectsSharedInRoomOverview', 'url' => '/api/{apiVersion}/chat/{token}/share/overview', 'verb' => 'GET', 'requirements' => $requirements],
 		/** @see \OCA\Talk\Controller\ChatController::getObjectsSharedInRoom() */
