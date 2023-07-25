@@ -373,7 +373,7 @@ class Listener implements IEventListener {
 		$metaData = json_decode($metaData, true);
 		$metaData = is_array($metaData) ? $metaData : [];
 
-		if (isset($metaData['noMessage'])) {
+		if (!empty($metaData['noMessage'])) {
 			return;
 		}
 
