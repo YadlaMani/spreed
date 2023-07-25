@@ -344,7 +344,7 @@ class ChatController extends AEnvironmentAwareController {
 		$message = json_encode([
 			'message' => 'multiple_files_shared',
 			'parameters' => [
-				'shares' => $sharedIds,
+				'shares' => $shareIds,
 				'caption' => $caption,
 			],
 		]);
