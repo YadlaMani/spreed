@@ -6,7 +6,7 @@ import Vuex from 'vuex'
 import { showError } from '@nextcloud/dialogs'
 
 import client from '../services/DavClient.js'
-import { shareFile } from '../services/filesSharingServices.js'
+import { shareFile, shareMultipleFiles } from '../services/filesSharingServices.js'
 import { setAttachmentFolder } from '../services/settingsService.js'
 import { findUniquePath, getFileExtension } from '../utils/fileUpload.js'
 import fileUploadStore from './fileUploadStore.js'
@@ -20,6 +20,7 @@ jest.mock('../utils/fileUpload', () => ({
 }))
 jest.mock('../services/filesSharingServices', () => ({
 	shareFile: jest.fn(),
+	shareMultipleFiles: jest.fn(),
 }))
 jest.mock('../services/settingsService', () => ({
 	setAttachmentFolder: jest.fn(),
@@ -111,6 +112,8 @@ describe('fileUploadStore', () => {
 					lastModified: Date.UTC(2021, 3, 25, 15, 30, 0),
 				},
 			]
+			const localUrls = ['local-url:pngimage.png', 'local-url:jpgimage.jpg', 'icon-url:text/plain']
+
 			await store.dispatch('initialiseUpload', {
 				uploadId: 'upload-id1',
 				token: 'XXTOKENXX',
@@ -118,22 +121,58 @@ describe('fileUploadStore', () => {
 			})
 
 			const uploads = store.getters.getInitialisedUploads('upload-id1')
-			expect(Object.keys(uploads).length).toBe(3)
+			expect(Object.keys(uploads).length).toBe(files.length)
 
-			for (let i = 0; i < files.length; i++) {
-				expect(mockedActions.createTemporaryMessage.mock.calls[i][1].text).toBe('{file}')
-				expect(mockedActions.createTemporaryMessage.mock.calls[i][1].uploadId).toBe('upload-id1')
-				expect(mockedActions.createTemporaryMessage.mock.calls[i][1].index).toBeDefined()
-				expect(mockedActions.createTemporaryMessage.mock.calls[i][1].file).toBe(files[i])
-				expect(mockedActions.createTemporaryMessage.mock.calls[i][1].token).toBe('XXTOKENXX')
+			for (const index in files) {
+				expect(mockedActions.createTemporaryMessage.mock.calls[index][1]).toMatchObject({
+					text: '{file}',
+					token: 'XXTOKENXX',
+					uploadId: 'upload-id1',
+					index: expect.anything(),
+					file: files[index],
+					localUrl: localUrls[index],
+				})
 			}
-
-			expect(mockedActions.createTemporaryMessage.mock.calls[0][1].localUrl).toBe('local-url:pngimage.png')
-			expect(mockedActions.createTemporaryMessage.mock.calls[1][1].localUrl).toBe('local-url:jpgimage.jpg')
-			expect(mockedActions.createTemporaryMessage.mock.calls[2][1].localUrl).toBe('icon-url:text/plain')
 		})
 
-		test('performs upload by uploading then sharing', async () => {
+		test('performs upload and sharing of single file', async () => {
+			const file = {
+				name: 'pngimage.png',
+				type: 'image/png',
+				size: 123,
+				lastModified: Date.UTC(2021, 3, 27, 15, 30, 0),
+			}
+			const fileBuffer = await new Blob([file]).arrayBuffer()
+
+			await store.dispatch('initialiseUpload', {
+				uploadId: 'upload-id1',
+				token: 'XXTOKENXX',
+				files: [file],
+			})
+
+			expect(store.getters.currentUploadId).toBe('upload-id1')
+
+			const uniqueFileName = '/Talk/' + file.name + 'uniq'
+			findUniquePath.mockResolvedValueOnce(uniqueFileName)
+			client.putFileContents.mockResolvedValue()
+			shareFile.mockResolvedValue()
+
+			await store.dispatch('uploadFiles', { uploadId: 'upload-id1', caption: 'text-caption' })
+
+			expect(findUniquePath).toHaveBeenCalledTimes(1)
+			expect(findUniquePath).toHaveBeenCalledWith(client, '/files/current-user', '/Talk/' + file.name)
+
+			expect(client.putFileContents).toHaveBeenCalledTimes(1)
+			expect(client.putFileContents).toHaveBeenCalledWith(`/files/current-user${uniqueFileName}`, fileBuffer, expect.anything())
+
+			expect(shareFile).toHaveBeenCalledTimes(1)
+			expect(shareFile).toHaveBeenCalledWith(`/${uniqueFileName}`, 'XXTOKENXX', 'reference-id-1', '{"caption":"text-caption","noMessage":false}')
+
+			expect(mockedActions.addTemporaryMessage).toHaveBeenCalledTimes(1)
+			expect(store.getters.currentUploadId).not.toBeDefined()
+		})
+
+		test('performs upload and sharing of multiple files', async () => {
 			const file1 = {
 				name: 'pngimage.png',
 				type: 'image/png',
@@ -164,24 +203,27 @@ describe('fileUploadStore', () => {
 				.mockResolvedValueOnce('/Talk/' + files[0].name + 'uniq')
 				.mockResolvedValueOnce('/Talk/' + files[1].name + 'uniq')
 			client.putFileContents.mockResolvedValue()
-			shareFile.mockResolvedValue()
+			shareFile
+				.mockResolvedValueOnce({ data: { ocs: { data: { id: '1' } } } })
+				.mockResolvedValueOnce({ data: { ocs: { data: { id: '2' } } } })
+			shareMultipleFiles.mockResolvedValue()
 
-			await store.dispatch('uploadFiles', { uploadId: 'upload-id1' })
+			await store.dispatch('uploadFiles', { uploadId: 'upload-id1', caption: 'text-caption' })
 
+			expect(findUniquePath).toHaveBeenCalledTimes(2)
 			expect(client.putFileContents).toHaveBeenCalledTimes(2)
 			expect(shareFile).toHaveBeenCalledTimes(2)
 
-			for (let i = 0; i < files.length; i++) {
-				expect(findUniquePath).toHaveBeenCalledWith(client, '/files/current-user', '/Talk/' + files[i].name)
-				expect(client.putFileContents.mock.calls[i][0]).toBe('/files/current-user/Talk/' + files[i].name + 'uniq')
-				expect(client.putFileContents.mock.calls[i][1]).toStrictEqual(fileBuffers[i])
-
-				expect(shareFile.mock.calls[i][0]).toBe('//Talk/' + files[i].name + 'uniq')
-				expect(shareFile.mock.calls[i][1]).toBe('XXTOKENXX')
-				expect(shareFile.mock.calls[i][2]).toBe('reference-id-' + (i + 1))
+			for (const index in files) {
+				expect(findUniquePath).toHaveBeenCalledWith(client, '/files/current-user', '/Talk/' + files[index].name)
+				expect(client.putFileContents).toHaveBeenCalledWith(`/files/current-user/Talk/${files[index].name}uniq`, fileBuffers[index], expect.anything())
+				expect(shareFile).toHaveBeenCalledWith(`//Talk/${files[index].name}uniq`, 'XXTOKENXX', 'reference-id-' + (Number(index) + 1), '{"caption":"text-caption","noMessage":true}')
 			}
 
-			expect(mockedActions.addTemporaryMessage).toHaveBeenCalledTimes(2)
+			expect(shareMultipleFiles).toHaveBeenCalledTimes(1)
+			expect(shareMultipleFiles).toHaveBeenCalledWith('XXTOKENXX', ['1', '2'], 'text-caption', undefined, 'reference-id-1')
+
+			expect(mockedActions.addTemporaryMessage).toHaveBeenCalledTimes(1)
 			expect(store.getters.currentUploadId).not.toBeDefined()
 		})
 
