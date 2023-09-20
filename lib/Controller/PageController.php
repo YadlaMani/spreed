@@ -50,6 +50,7 @@ use OCP\AppFramework\Http\RedirectResponse;
 use OCP\AppFramework\Http\Response;
 use OCP\AppFramework\Http\Template\PublicTemplateResponse;
 use OCP\AppFramework\Http\TemplateResponse;
+use OCP\AppFramework\Http\TooManyRequestsResponse;
 use OCP\AppFramework\Services\IInitialState;
 use OCP\Collaboration\Reference\RenderReferenceEvent;
 use OCP\Collaboration\Resources\LoadAdditionalScriptsEvent;
@@ -62,9 +63,12 @@ use OCP\IGroupManager;
 use OCP\IRequest;
 use OCP\IURLGenerator;
 use OCP\IUser;
+use OCP\IUserManager;
 use OCP\IUserSession;
+use OCP\L10N\IFactory;
 use OCP\Notification\IManager as INotificationManager;
 use OCP\Security\Bruteforce\IThrottler;
+use OCP\Security\RateLimiting\ILimiter;
 use Psr\Log\LoggerInterface;
 
 class PageController extends Controller {
@@ -92,6 +96,9 @@ class PageController extends Controller {
 		Config $talkConfig,
 		IConfig $serverConfig,
 		IGroupManager $groupManager,
+		protected IUserManager $userManager,
+		protected ILimiter $limiter,
+		protected IFactory $l10nFactory,
 	) {
 		parent::__construct($appName, $request);
 		$this->initialState = $initialState;
@@ -143,6 +150,30 @@ class PageController extends Controller {
 	}
 
 	/**
+	 * @param string $forUser
+	 * @return ?Room
+	 */
+	protected function createPrivateRoom(string $forUser): ?Room {
+		$user = $this->userManager->get($forUser);
+		if (!$user instanceof IUser) {
+			return null;
+		}
+
+		try {
+			$objectType = '';
+			$objectId = '';
+			$l = $this->l10nFactory->get('spreed', $this->l10nFactory->getUserLanguage($user));
+			$room = $this->roomService->createConversation(Room::TYPE_PUBLIC,
+				$l->t('Contact request'), $user, $objectType, $objectId,
+			);
+		} catch (\InvalidArgumentException $e) {
+			return null;
+		}
+
+		return $room;
+	}
+
+	/**
 	 * @param string $token
 	 * @param string $callUser
 	 * @param string $password
@@ -152,12 +183,37 @@ class PageController extends Controller {
 	#[NoCSRFRequired]
 	#[PublicPage]
 	#[BruteForceProtection(action: 'talkRoomToken')]
+	#[BruteForceProtection(action: 'callUser')]
 	#[UseSession]
 	public function index(string $token = '', string $callUser = '', string $password = ''): Response {
 		$bruteForceToken = $token;
 		$user = $this->userSession->getUser();
 		if (!$user instanceof IUser) {
-			return $this->guestEnterRoom($token, $password);
+			if ($token === '') {
+				$room = $this->createPrivateRoom($callUser);
+				if ($room === null) {
+					$response = new TemplateResponse('core', '404-profile', [], 'guest');
+					$response->throttle(['action' => 'callUser', 'callUser' => $callUser]);
+
+					return $response;
+				}
+
+				try {
+					$this->limiter->registerAnonRequest(
+						'create-anonymous-conversation',
+						5, // Five conversations
+						60 * 60, // Per hour
+						$this->request->getRemoteAddress(),
+					);
+				} catch(IRateLimitExceededException $exception) {
+					return new TooManyRequestsResponse();
+				}
+				
+				// FIXME: add rate limiting
+				return $this->redirectToConversation($room->getToken());
+			} else {
+				return $this->guestEnterRoom($token, $password);
+			}
 		}
 
 		$throttle = false;
