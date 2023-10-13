@@ -142,6 +142,7 @@ class CapabilitiesTest extends TestCase {
 			'session-state',
 			'note-to-self',
 			'recording-consent',
+			'sip-support-dialout',
 			'message-expiration',
 			'reactions',
 		];
@@ -193,6 +194,8 @@ class CapabilitiesTest extends TestCase {
 						'recording' => false,
 						'recording-consent' => 0,
 						'supported-reactions' => ['❤️', '🎉', '👏', '👍', '👎', '😂', '🤩', '🤔', '😲', '😥'],
+						'sip-enabled' => false,
+						'sip-dialout-enabled' => false,
 						'predefined-backgrounds' => [
 							'1_office.jpg',
 							'2_home.jpg',
@@ -204,6 +207,7 @@ class CapabilitiesTest extends TestCase {
 							'8_space_station.jpg',
 						],
 						'can-upload-background' => false,
+						'can-enable-sip' => false,
 					],
 					'chat' => [
 						'max-length' => 32000,
@@ -318,6 +322,8 @@ class CapabilitiesTest extends TestCase {
 						'recording' => false,
 						'recording-consent' => 0,
 						'supported-reactions' => ['❤️', '🎉', '👏', '👍', '👎', '😂', '🤩', '🤔', '😲', '😥'],
+						'sip-enabled' => false,
+						'sip-dialout-enabled' => false,
 						'predefined-backgrounds' => [
 							'1_office.jpg',
 							'2_home.jpg',
@@ -329,6 +335,7 @@ class CapabilitiesTest extends TestCase {
 							'8_space_station.jpg',
 						],
 						'can-upload-background' => $canUpload,
+						'can-enable-sip' => false,
 					],
 					'chat' => [
 						'max-length' => 32000,
