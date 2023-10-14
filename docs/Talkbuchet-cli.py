@@ -1351,7 +1351,7 @@ def switchToVirtualParticipantMode():
 
     Note that adding a new participant does not remove the previous ones. That
     should be explicitly done by calling "removeVirtualParticipants()" (or
-    "removeVirtualParticipant(INDEX)" to remove just a specific participant). 
+    "removeVirtualParticipant(INDEX)" to remove just a specific participant).
     Therefore, it is possible to add several participants with different
     parameters (like several guests and then several users, or participants with
     and without media) by setting the parameters, calling
@@ -1360,8 +1360,8 @@ def switchToVirtualParticipantMode():
 
     In case joining/leaving a call should be tested, it makes sense to use
     "prepareVirtualParticipant()" / "prepareVirtualParticipants(NUMBER)" and
-    then start them with "startVirtualParticipants()" and stop them with 
-    "stopVirtualParticipants()". In case joining/leaving should be done in 
+    then start them with "startVirtualParticipants()" and stop them with
+    "stopVirtualParticipants()". In case joining/leaving should be done in
     parallel one can use "startVirtualParticipantsParallel()" and
     "stopVirtualParticipantsParallel()".
 
@@ -1449,20 +1449,27 @@ def switchToVirtualParticipantMode():
         """
         Starts all virtual participants which are prepared.
 
-        Note that there's no check if a virtual participant was 
-        already started before.
+        Note that there is no check if a virtual participant was already started
+        before. The result of starting again a virtual participant before
+        stopping it first is undefined, no matter if the virtual participant was
+        started with any of the "startVirtualParticipants" or
+        "addVirtualParticipant" variants.
 
         See :py:func:`prepareVirtualParticipant`.
-        """        
+        """
         for virtualParticipant in virtualParticipants:
-            virtualParticipant.startVirtualParticipant() 
+            virtualParticipant.startVirtualParticipant()
 
     def startVirtualParticipantsParallel():
         """
-        Stops all virtual participants.
+        Starts all virtual participants.
 
-        Same as :py:func:`startVirtualParticipants`, but starting each
-        virtual participant in parallel.
+        Same as :py:func:`startVirtualParticipants`, but starting each virtual
+        participant in parallel.
+
+        This method returns before the virtual participants were fully started,
+        so it should be ensured that starting them finished before starting more
+        virtual participants or stopping them.
         """
 
         for virtualParticipant in virtualParticipants:
@@ -1476,8 +1483,8 @@ def switchToVirtualParticipantMode():
         The participants are not removed and can be started again.
         See :py:func:`prepareVirtualParticipant`.
 
-        Note that there's no check if a virtual participant was 
-        started/stopped before.
+        Note that there is no check if a virtual participant was started/stopped
+        before.
 
         See :py:func:`prepareVirtualParticipant`.
         """
@@ -1489,8 +1496,12 @@ def switchToVirtualParticipantMode():
         """
         Stops all virtual participants.
 
-        Same as :py:func:`stopVirtualParticipants` but stopping each
-        virtual participant in parallel.
+        Same as :py:func:`stopVirtualParticipants`, but stopping each virtual
+        participant in parallel.
+
+        This method returns before the virtual participants were fully stopped,
+        so it should be ensured that stopping them finished before starting or
+        stopping them again.
         """
 
         for virtualParticipant in virtualParticipants:
@@ -1511,7 +1522,7 @@ def switchToVirtualParticipantMode():
         existing virtual participant, the updated value will be used only by
         virtual participants added after they were changed.
 
-        This method prepares a participant and immediately starts it. 
+        This method prepares a participant and immediately starts it.
         """
 
         if not _isValidConfiguration():
