@@ -114,6 +114,20 @@ export const useSharedItemsStore = defineStore('sharedItems', {
 		},
 
 		/**
+		 * @param {Message} message message with shared items
+		 */
+		addMultipleSharedItemsFromMessage(message) {
+			console.log('multiple items')
+			// const token = message.token
+			// const type = getItemTypeFromMessage(message)
+			// this.checkForExistence(token, type)
+			//
+			// if (!this.sharedItemsPool[token][type][message.id]) {
+			// 	Vue.set(this.sharedItemsPool[token][type], message.id, message)
+			// }
+		},
+
+		/**
 		 * @param {Token} token conversation token
 		 * @param {Type} type type of shared item
 		 * @param {Message[]} messages message with shared items

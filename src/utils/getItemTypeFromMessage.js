@@ -26,6 +26,7 @@ export const getItemTypeFromMessage = function(message) {
 			return SHARED_ITEM.TYPES.FILE
 		}
 	} else {
+		// handle multiple files share
 		return SHARED_ITEM.TYPES.OTHER
 	}
 }
