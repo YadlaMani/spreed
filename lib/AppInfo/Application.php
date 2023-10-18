@@ -53,6 +53,7 @@ use OCA\Talk\Events\RoomEvent;
 use OCA\Talk\Events\RoomModifiedEvent;
 use OCA\Talk\Events\SendCallNotificationEvent;
 use OCA\Talk\Federation\CloudFederationProviderTalk;
+use OCA\Talk\Federation\Listener as FederationListener;
 use OCA\Talk\Files\Listener as FilesListener;
 use OCA\Talk\Files\TemplateLoader as FilesTemplateLoader;
 use OCA\Talk\Flow\RegisterOperationsListener;
@@ -153,6 +154,7 @@ class Application extends App implements IBootstrap {
 
 		// Talk internal listeners
 		$context->registerEventListener(RoomModifiedEvent::class, SignalingListener::class);
+		$context->registerEventListener(RoomModifiedEvent::class, FederationListener::class);
 
 		$context->registerEventListener(CircleDestroyedEvent::class, CircleDeletedListener::class);
 		$context->registerEventListener(AddingCircleMemberEvent::class, CircleMembershipListener::class);

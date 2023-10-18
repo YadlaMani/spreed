@@ -339,6 +339,8 @@ class RoomService {
 			return false;
 		}
 
+		$event = new BeforeRoomModifiedEvent($room, 'name', $newName, $oldName);
+		$this->dispatcher->dispatchTyped($event);
 		$event = new ModifyRoomEvent($room, 'name', $newName, $oldName);
 		$this->dispatcher->dispatch(Room::EVENT_BEFORE_NAME_SET, $event);
 
@@ -351,6 +353,8 @@ class RoomService {
 		$room->setName($newName);
 
 		$this->dispatcher->dispatch(Room::EVENT_AFTER_NAME_SET, $event);
+		$event = new RoomModifiedEvent($room, 'name', $newName, $oldName);
+		$this->dispatcher->dispatchTyped($event);
 
 		return true;
 	}
