@@ -100,6 +100,8 @@ export const ATTENDEE = {
 		CIRCLES: 'circles',
 		BOTS: 'bots',
 		BRIDGED: 'bridged',
+		FEDERATED_USERS: 'federated_users',
+		PHONES: 'phones',
 	},
 
 	BRIDGE_BOT_ID: 'bridge-bot',

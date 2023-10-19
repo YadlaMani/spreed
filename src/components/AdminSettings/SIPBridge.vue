@@ -73,7 +73,15 @@
 				{{ t('spreed', 'This information is sent in invitation emails as well as displayed in the sidebar to all participants.') }}
 			</p>
 
+			<NcCheckboxRadioSwitch type="switch"
+				:checked="dialOutEnabled"
+				:disabled="loading"
+				@update:checked="updateDialOut">
+				{{ t('spreed', 'Enable SIP Dial-out option') }}
+			</NcCheckboxRadioSwitch>
+
 			<NcButton type="primary"
+				class="additional-top-margin"
 				:disabled="loading"
 				@click="saveSIPSettings">
 				{{ t('spreed', 'Save changes') }}
@@ -91,6 +99,7 @@ import { loadState } from '@nextcloud/initial-state'
 import { generateOcsUrl } from '@nextcloud/router'
 
 import NcButton from '@nextcloud/vue/dist/Components/NcButton.js'
+import NcCheckboxRadioSwitch from '@nextcloud/vue/dist/Components/NcCheckboxRadioSwitch.js'
 import NcSelect from '@nextcloud/vue/dist/Components/NcSelect.js'
 import NcTextField from '@nextcloud/vue/dist/Components/NcTextField.js'
 
@@ -100,6 +109,7 @@ export default {
 	name: 'SIPBridge',
 
 	components: {
+		NcCheckboxRadioSwitch,
 		NcButton,
 		NcSelect,
 		NcTextField,
@@ -114,6 +124,7 @@ export default {
 			sipGroups: [],
 			dialInInfo: '',
 			sharedSecret: '',
+			dialOutEnabled: false,
 		}
 	},
 
@@ -124,6 +135,7 @@ export default {
 		})
 		this.sipGroups = this.groups
 		this.dialInInfo = loadState('spreed', 'sip_bridge_dialin_info')
+		this.dialOutEnabled = loadState('spreed', 'sip_bridge_dialout')
 		this.sharedSecret = loadState('spreed', 'sip_bridge_shared_secret')
 		this.searchGroup('')
 		this.loading = false
@@ -163,6 +175,18 @@ export default {
 
 			this.loading = false
 			showSuccess(t('spreed', 'SIP configuration saved!'))
+		},
+
+		async updateDialOut(value) {
+			this.loading = true
+
+			OCP.AppConfig.setValue('spreed', 'sip_dialout', value ? 'yes' : 'no', {
+				success: function() {
+					showSuccess(t('spreed', 'SIP Dial-out setting saved'))
+					this.loading = false
+					this.dialOutEnabled = value
+				}.bind(this),
+			})
 		},
 	},
 }
