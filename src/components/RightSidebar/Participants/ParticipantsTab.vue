@@ -21,12 +21,30 @@
 
 <template>
 	<div class="wrapper">
-		<SearchBox v-if="canSearch"
-			:value.sync="searchText"
-			:is-focused.sync="isFocused"
-			:placeholder-text="searchBoxPlaceholder"
-			@input="handleInput"
-			@abort-search="abortSearch" />
+		<div class="search-form">
+			<SearchBox v-if="canSearch"
+				class="search-form__input"
+				:value.sync="searchText"
+				:is-focused.sync="isFocused"
+				:placeholder-text="searchBoxPlaceholder"
+				@input="handleInput"
+				@keydown.enter="addParticipants(participantPhoneItem)"
+				@abort-search="abortSearch" />
+			<DialpadPanel v-if="hasSIPEnabled" @dial:type="dialType" />
+		</div>
+
+		<ul>
+			<NcListItem v-if="hasSIPEnabled && isValidE164Number(participantPhoneItem.phoneNumber)"
+				:name="t('spreed', 'Add a phone number')"
+				@click="addParticipants(participantPhoneItem)">
+				<template #icon>
+					<Phone :size="30" />
+				</template>
+				<template #subname>
+					{{ participantPhoneItem.phoneNumber }}
+				</template>
+			</NcListItem>
+		</ul>
 
 		<ParticipantsListVirtual v-if="!isSearching"
 			:participants="participants"
@@ -53,12 +71,16 @@
 <script>
 import debounce from 'debounce'
 
+import Phone from 'vue-material-design-icons/Phone.vue'
+
 import { showError } from '@nextcloud/dialogs'
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { loadState } from '@nextcloud/initial-state'
 
 import NcAppNavigationCaption from '@nextcloud/vue/dist/Components/NcAppNavigationCaption.js'
+import NcListItem from '@nextcloud/vue/dist/Components/NcListItem.js'
 
+import DialpadPanel from '../../DialpadPanel.vue'
 import Hint from '../../Hint.vue'
 import SearchBox from '../../LeftSidebar/SearchBox/SearchBox.vue'
 import ParticipantsList from './ParticipantsList/ParticipantsList.vue'
@@ -66,21 +88,27 @@ import ParticipantsListVirtual from './ParticipantsList/ParticipantsListVirtual.
 import ParticipantsSearchResults from './ParticipantsSearchResults/ParticipantsSearchResults.vue'
 
 import { useSortParticipants } from '../../../composables/useSortParticipants.js'
+import { ATTENDEE, WEBINAR } from '../../../constants.js'
 import getParticipants from '../../../mixins/getParticipants.js'
 import { searchPossibleConversations } from '../../../services/conversationsService.js'
 import { EventBus } from '../../../services/EventBus.js'
 import { addParticipant } from '../../../services/participantsService.js'
 import CancelableRequest from '../../../utils/cancelableRequest.js'
+import { getE164Number, isValidE164Number } from '../../../utils/formattedPhoneNumber.js'
 
 export default {
 	name: 'ParticipantsTab',
 	components: {
-		ParticipantsListVirtual,
-		ParticipantsList,
+		DialpadPanel,
 		Hint,
 		NcAppNavigationCaption,
-		SearchBox,
+		NcListItem,
+		ParticipantsList,
+		ParticipantsListVirtual,
 		ParticipantsSearchResults,
+		SearchBox,
+		// Icons
+		Phone,
 	},
 
 	mixins: [getParticipants],
@@ -152,6 +180,23 @@ export default {
 		noResults() {
 			return this.searchResults === []
 		},
+		hasSIPEnabled() {
+			return this.conversation.sipEnabled !== WEBINAR.SIP.DISABLED
+		},
+		participantPhoneItem() {
+			const phoneNumber = getE164Number(this.searchText)
+			return {
+				id: `PHONE(${phoneNumber})`,
+				source: ATTENDEE.ACTOR_TYPE.PHONES,
+				phoneNumber,
+			}
+		},
+	},
+
+	watch: {
+		searchText(value) {
+			this.isFocused = !!value
+		}
 	},
 
 	beforeMount() {
@@ -229,6 +274,29 @@ export default {
 			}
 		},
 
+		dialType(event) {
+			switch (event.type) {
+			case 'add': {
+				this.searchText += event.value
+				return
+			}
+			case 'subtract': {
+				this.searchText = this.searchText.slice(0, -1)
+				return
+			}
+			case 'confirm': {
+				this.addParticipants(this.participantPhoneItem)
+				return
+			}
+			case 'set':
+			default: {
+				this.searchText = event.value
+			}
+			}
+		},
+
+		isValidE164Number,
+
 		// Ends the search operation
 		abortSearch() {
 			this.searchText = ''
@@ -261,11 +329,21 @@ export default {
 }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .wrapper {
 	display: flex;
 	flex-direction: column;
 	height: 100%;
+}
+
+.search-form {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+
+  .search-form__input {
+    margin: 0;
+  }
 }
 
 .scroller {
